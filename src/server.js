@@ -1,16 +1,18 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import { MongoClient } from 'mongodb';
-import path from 'path'
+import path from 'path';
 
 const app = express();
+const port = process.env.PORT | 8000;
+const MONGO_DB = process.env.MONGO_DB
 
-app.use(express.static(path.join(__dirname, '/build')))
+app.use(express.static(path.join(__dirname, './build')));
 app.use(bodyParser.json());
 
 const withDB = async (operations, res) => {
   try {
-    const client = await MongoClient.connect('mongodb://localhost:27017', {
+    const client = await MongoClient.connect(MONGO_DB, {
       useNewUrlParser: true,
     });
     const db = client.db('my-blog');
@@ -24,7 +26,7 @@ const withDB = async (operations, res) => {
 };
 
 app.get('/api/articles/:name', async (req, res) => {
-  console.log(req)
+  console.log(req);
   withDB(async (db) => {
     const articleName = req.params.name;
 
@@ -46,7 +48,7 @@ app.post('/api/articles/:name/upvote', async (req, res) => {
     await db.collection('articles').updateOne(
       { name: articleName },
       {
-        '$set': {
+        $set: {
           upvotes: articleInfo.upvotes + 1,
         },
       }
@@ -67,11 +69,11 @@ app.post('/api/articles/:name/add-comment', async (req, res) => {
     const articleInfo = await db
       .collection('articles')
       .findOne({ name: articleName });
-    
+
     await db.collection('articles').updateOne(
       { name: articleName },
       {
-        '$set': {
+        $set: {
           comments: articleInfo.comments.concat({ username, text }),
         },
       }
@@ -86,7 +88,7 @@ app.post('/api/articles/:name/add-comment', async (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname + '/build/index.html'))
-})
+  res.sendFile(path.join(__dirname + '/build/index.html'));
+});
 
-app.listen(8000, () => console.log('Listening on port 8000'));
+app.listen(8000, () => console.log(`Listening on port ${port}`));
